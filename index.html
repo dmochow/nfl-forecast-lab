@@ -121,7 +121,11 @@ tr.dis td.pname { text-decoration: line-through; color: var(--off); }
     Nothing here is betting advice.</p>
   </div>
   <section id="boardView">
-    <h2 style="margin-top:16px">Model accuracy — completed games, picks frozen at last pre-kickoff forecast</h2>
+    <h2 style="margin-top:16px">Model accuracy — season to date, picks frozen at last pre-kickoff forecast</h2>
+    <div style="display:flex;align-items:center;gap:8px;margin:10px 0 2px">
+      <label for="wkSel" style="color:var(--mut);font-size:13px">Week</label>
+      <select id="wkSel" style="background:var(--card);color:var(--ink);border:1px solid var(--grid);border-radius:6px;padding:4px 8px;font:inherit"></select>
+    </div>
     <div class="accgrid" id="accGrid"></div>
     <div class="card overflow">
       <table id="boardTbl">
@@ -413,7 +417,15 @@ render();
 // ---------------- week board ----------------
 const BM = DATA.board_models;
 const BSHORT = ["res/act", "res/proj", "mar/act", "mar/proj"];
-const bstate = { col: "e0", dir: -1 };
+const WKS = [...new Set(DATA.board.map(r => r.wk))].sort((a, b) => a - b);
+const bstate = { col: "e0", dir: -1, wk: WKS[WKS.length - 1] };
+{
+  const sel = document.getElementById("wkSel");
+  sel.innerHTML = WKS.map(w => `<option value="${w}">Week ${w}</option>`).join("")
+    + `<option value="all">All weeks</option>`;
+  sel.value = String(bstate.wk);
+  sel.onchange = () => { bstate.wk = sel.value === "all" ? "all" : +sel.value; renderBoard(); };
+}
 
 function bgrade(r, m) {
   const pm = r.preds[m];
@@ -426,7 +438,8 @@ function bgrade(r, m) {
 }
 
 function renderBoard() {
-  const rows = DATA.board.map(r => {
+  const shown = DATA.board.filter(r => bstate.wk === "all" || r.wk === bstate.wk);
+  const rows = shown.map(r => {
     const g = BM.map(m => bgrade(r, m));
     return { r, g, sv: {
       kick: r.kick, spread: r.spread ?? -99,
